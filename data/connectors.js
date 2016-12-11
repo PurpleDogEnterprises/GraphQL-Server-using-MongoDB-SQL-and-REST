@@ -1,7 +1,9 @@
-import Sequelize from 'sequelize';
+iimport Sequelize from 'sequelize';
 import casual from 'casual';
 import _ from 'lodash';
 import Mongoose from 'mongoose';
+import rp from 'request-promise';
+
 
 const db = new Sequelize('blog', null, null, {
   dialect: 'sqlite',
@@ -21,6 +23,8 @@ const PostModel = db.define('post', {
 AuthorModel.hasMany(PostModel);
 PostModel.belongsTo(AuthorModel);
 
+// views in mongo DB
+
 const mongo = Mongoose.connect('mongodb://localhost/views');
 
 const ViewSchema = Mongoose.Schema({
@@ -31,7 +35,6 @@ const ViewSchema = Mongoose.Schema({
 const View = Mongoose.model('views', ViewSchema);
 
 
-// modify the mock data creation to also create some views:
 casual.seed(123);
 db.sync({ force: true }).then(() => {
   _.times(10, () => {
@@ -42,8 +45,7 @@ db.sync({ force: true }).then(() => {
       return author.createPost({
         title: `A post by ${author.firstName}`,
         text: casual.sentences(3),
-      }).then((post) => { // <- the new part starts here
-        // create some View mocks
+      }).then((post) => {
         return View.update(
           { postId: post.id },
           { views: casual.integer(0, 100) },
@@ -56,4 +58,15 @@ db.sync({ force: true }).then(() => {
 const Author = db.models.author;
 const Post = db.models.post;
 
-export { Author, Post, View };
+const FortuneCookie = {
+  getOne() {
+    return rp('http://fortunecookieapi.com/v1/cookie')
+      .then((res) => JSON.parse(res))
+      .then((res) => {
+        return res[0].fortune.message;
+      });
+  },
+};
+
+
+export { Author, Post, View, FortuneCookie };
